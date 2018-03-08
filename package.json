@@ -1,0 +1,98 @@
+{
+  "name": "@darkobits/twilio-local",
+  "description": "Securely route Twilio applications to a local server.",
+  "version": "0.0.0",
+  "author": "darkobits",
+  "keywords": [
+    "development",
+    "local",
+    "localhost",
+    "monitor",
+    "nat",
+    "ngrok",
+    "nodemon",
+    "reload",
+    "restart",
+    "tunnel",
+    "tunneling",
+    "twilio",
+    "watch"
+  ],
+  "engines": {
+    "node": "^8.9.0",
+    "npm": "^5.7.0"
+  },
+  "bin": {
+    "twilio-local": "dist/bin/cli.js"
+  },
+  "main": "dist/twilio-local.js",
+  "scripts": {
+    "lint": "xo",
+    "test": "jest",
+    "prebuild": "rimraf dist",
+    "build": "babel src --out-dir dist",
+    "prebump": "run-p lint test build",
+    "bump": "standard-version"
+  },
+  "dependencies": {
+    "@darkobits/log": "1.1.0-beta.0",
+    "ajv": "^6.2.1",
+    "axios": "^0.18.0",
+    "babel-eslint": "^8.2.2",
+    "camelcase": "^4.1.0",
+    "chalk": "^2.3.2",
+    "convert-hrtime": "^2.0.0",
+    "cosmiconfig": "^4.0.0",
+    "dotenv": "^5.0.1",
+    "moment": "^2.21.0",
+    "ngrok": "^3.0.0",
+    "node-cleanup": "^2.1.2",
+    "nodemon": "^1.17.1",
+    "open": "0.0.5",
+    "querystring": "^0.2.0",
+    "signal-exit": "^3.0.2",
+    "uuid": "^3.2.1"
+  },
+  "devDependencies": {
+    "babel-cli": "6.x",
+    "babel-jest": "^22.4.1",
+    "babel-plugin-module-resolver": "^3.1.0",
+    "babel-plugin-transform-class-properties": "^6.24.1",
+    "babel-plugin-transform-object-rest-spread": "^6.26.0",
+    "babel-preset-env": "1.x",
+    "jest": "^22.4.2",
+    "npm-run-all": "4.x",
+    "rimraf": "2.6.x",
+    "standard-version": "^4.3.0",
+    "strip-ansi": "^4.0.0",
+    "xo": "0.18.x"
+  },
+  "xo": {
+    "parser": "babel-eslint",
+    "env": [
+      "node",
+      "jest"
+    ],
+    "space": true,
+    "rules": {
+      "capitalized-comments": "warn",
+      "import/no-extraneous-dependencies": "off",
+      "import/no-unassigned-import": "off",
+      "import/no-unresolved": "off",
+      "import/prefer-default-export": "off",
+      "max-nested-callbacks": "off",
+      "max-params": "off",
+      "new-cap": "off",
+      "no-multiple-empty-lines": "off",
+      "no-prototype-builtins": "off",
+      "prefer-arrow-callback": "off",
+      "space-before-function-paren": [
+        "error",
+        {
+          "named": "always"
+        }
+      ],
+      "unicorn/filename-case": "off"
+    }
+  }
+}
