@@ -3,6 +3,10 @@
   "description": "Securely route Twilio applications to a local server.",
   "version": "0.1.0",
   "author": "darkobits",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/darkobits/twilio-local.git"
+  },
   "keywords": [
     "development",
     "local",
