@@ -23,6 +23,7 @@ const PROTOCOL = 'tls';
 const PORT = 8585;
 const ENTRY = path.resolve(os.tmpdir(), 'index.js');
 
+jest.useFakeTimers();
 
 describe('TwilioLocal', () => {
   describe('validating configuration', () => {
@@ -221,8 +222,6 @@ describe('TwilioLocal', () => {
     });
 
     it('should create an ngrok tunnel with the provided parameters', () => {
-      // expect(jest.isMockFunction(ngrok.connect)).toBe(true);
-
       expect(ngrok.connect.mock.calls[0][0]).toMatchObject({
         proto: PROTOCOL,
         addr: PORT
@@ -230,8 +229,6 @@ describe('TwilioLocal', () => {
     });
 
     it('should create a Twilio application with the provided parameters', () => {
-      // expect(jest.isMockFunction(axios)).toBe(true);
-
       // Assert that an Axios client was created using our Twilio account SID
       // and auth token.
       expect(axios.create.mock.calls[0][0]).toMatchObject({
@@ -253,13 +250,18 @@ describe('TwilioLocal', () => {
     });
 
     it('should start nodemon with the provided parameters', () => {
-      // expect(jest.isMockFunction(nodemon)).toBe(true);
+      const nodemonArgs = nodemon.mock.calls[0][0];
 
-      const nodemonOptions = nodemon.mock.calls[0][0];
-      const entryDir = path.parse(nodemonOptions.script).dir;
+      // Assert we are transpiling code.
+      expect(nodemonArgs).toContain('--exec babel-node');
 
-      expect(nodemonOptions.script).toMatch(new RegExp(`${ENTRY}$`, 'ig'));
-      expect(nodemonOptions.watch).toBe(entryDir);
+      // Assert that we are watching the entry directory.
+      expect(nodemonArgs).toContain(`--watch ${path.parse(ENTRY).dir}`);
+
+      // Assert that the entry file was the last parameter.
+      expect(nodemonArgs).toMatch(new RegExp(`${ENTRY}$`));
+
+      jest.advanceTimersByTime(1000);
     });
 
     afterAll(async () => {

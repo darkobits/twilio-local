@@ -1,6 +1,13 @@
 const axios = jest.fn().mockImplementation(() => {
   return {
-    data: 'foo'
+    data: {
+      voice_url: 'foo',
+      voice_method: 'GET',
+      sms_url: 'bar',
+      sms_method: 'GET',
+      status_callback: 'baz',
+      status_callback_method: 'GET'
+    }
   };
 });
 

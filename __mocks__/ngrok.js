@@ -3,6 +3,9 @@ const connect = jest.fn().mockImplementation(() => {
 });
 
 
+const kill = jest.fn();
+
 export default {
-  connect
+  connect,
+  kill
 };

@@ -188,7 +188,7 @@ export default async function TwilioLocal (userConfig = {}) {
    * @param {string} signal
    */
   function nodeCleanupHandler (code, signal) {
-    log.verbose('exit', `Receied exit signal "${signal}".`);
+    log.silly('exit', `Receied exit signal "${chalk.yellow(signal)}".`);
 
     doCleanup()
     .then(() => {
@@ -323,27 +323,20 @@ export default async function TwilioLocal (userConfig = {}) {
       const entryDir = path.parse(absEntry).dir;
 
       if (await canReadFile(absEntry)) {
-        log.info('nodemon', `Starting server at ${config.entry}.`);
+        log.info('nodemon', `Starting server at ${chalk.green(config.entry)}.`);
       } else {
         throw new Error(`Entry is not readable: ${absEntry}`);
       }
 
-      nodemon({
-        script: absEntry,
-        verbose: true,
-        watch: entryDir,
-        execMap: {
-          js: 'babel-node'
-        }
-      })
+      nodemon(`${config.inspect ? '--inspect' : ''} --exec babel-node --watch ${entryDir} ${absEntry}`)
       .on('start', () => {
-        log.info('nodemon', `This is a "start" event.`);
+        log.silly('nodemon', `Started.`);
       })
-      .on('restart', () => {
-        log.info('nodemon', `This is a "restart" event.`);
+      .on('restart', changedFiles => {
+        log.info('nodemon', `${chalk.green(changedFiles[0])} changed; restarting.`);
       })
       .on('quit', () => {
-        log.info('nodemon', `This is a "quit" event.`);
+        log.silly('nodemon', `Stopped.`);
       })
       .on('error', err => {
         log.error('nodemon', err.message);

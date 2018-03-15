@@ -29,8 +29,10 @@ $ npm i @darkobits/twilio-local
 Add a script to your project's `package.json` that calls `twilio-local`:
 
 ```json
-"scripts": {
-  "start": "twilio-local"
+{
+  "scripts": {
+    "start": "twilio-local"
+  }
 }
 ```
 
@@ -62,6 +64,7 @@ The following parameters may be provided based on your preferences and applicati
 All options may be provided to `twilio-local` in the following ways:
 
 - Via a configuration file named `twilio-local.config.js` in your project root.
+- Via command-line arguments. (See `twilio-local --help`)
 - Via environment variables (or a `.env` file) that begin with `TWILIO_`. For example, the environment variable `TWILIO_AUTH_TOKEN` will be mapped to the `authToken` option.
 
 **Note:** You should not put sensitive information, such as your application SID or auth token, in source control. Instead, place them in a `.env` file, and `twilio-local` will load them automatically.
