@@ -1,7 +1,7 @@
 {
   "name": "@darkobits/twilio-local",
   "description": "Securely route Twilio applications to a local server.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": "darkobits",
   "repository": {
     "type": "git",
