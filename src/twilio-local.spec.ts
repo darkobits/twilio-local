@@ -25,6 +25,7 @@ const ENTRY = path.resolve(os.tmpdir(), 'index.js');
 
 jest.useFakeTimers();
 
+
 describe('TwilioLocal', () => {
   describe('validating configuration', () => {
     it('should throw an error when provided no configuration', async () => {
@@ -46,20 +47,6 @@ describe('TwilioLocal', () => {
         expect(err.message).toBeTruthy();
       }
     });
-
-    // Note: Consider re-enabling this once config schema is stable.
-    //
-    // it('should throw an error when provided invalid keys', async () => {
-    //   expect.assertions(1);
-
-    //   try {
-    //     await TwilioLocal({
-    //       foo: 'bar'
-    //     });
-    //   } catch (err) {
-    //     expect(err.message).toMatch(/should not have additional properties/ig);
-    //   }
-    // });
 
     it('should throw an error when provided an invalid accountSid', async () => {
       expect.assertions(2);
@@ -238,7 +225,9 @@ describe('TwilioLocal', () => {
         }
       });
 
-      const parsedQueryString = Object.assign({}, querystring.parse(axios.mock.calls[0][0].data));
+      const parsedQueryString = {
+        ...querystring.parse(axios.mock.calls[0][0].data)
+      };
 
       expect(parsedQueryString.FriendlyName).toMatch(new RegExp(FRIENDLY_NAME, 'ig'));
       expect(parsedQueryString.VoiceMethod).toBe(METHOD);

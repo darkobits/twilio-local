@@ -2,25 +2,21 @@ import fs from 'fs';
 import path from 'path';
 import {promisify} from 'util';
 
-import assertIs from '@darkobits/assert-is';
 import camelCase from 'camelcase';
 import chalk from 'chalk';
 import cosmiconfig from 'cosmiconfig';
 import dotenv from 'dotenv';
 
 import {THIS_APP_NAME, TWILIO_KEY_PATTERN, ENV_KEYS} from 'etc/constants';
+import {LooseObject, ITwilioLocalConfig} from 'etc/types';
 import log from 'lib/log';
 
 
 /**
- * Logs an object's keys / values.
- *
- * @param {object} config
+ * Returns a formatted string representation of an object's keys / values.
  */
-export function toFormattedStr (config) {
-  assertIs.context('toFormattedStr').arg('config', config).is('plainObject');
-
-  return Object.entries(config).map(([key, value]) => {
+export function toFormattedStr(obj: object): string {
+  return Object.entries(obj).map(([key, value]) => {
     let parsedValue;
 
     switch (typeof value) {
@@ -35,20 +31,15 @@ export function toFormattedStr (config) {
         parsedValue = value;
     }
 
-    return chalk.bold(key) + chalk.dim(' => ') + parsedValue;
+    return `${chalk.bold(key)}${chalk.dim(' => ')}${parsedValue}`;
   }).join('\n');
 }
 
 
 /**
- * Returns true if the file at the provided path exists and is readable.
- *
- * @param  {string} value - Path to check.
- * @return {Promise<boolean>}
+ * Resolves with true if the file at the provided path exists and is readable.
  */
-export async function canReadFile (filePath) {
-  assertIs.context('canReadFile').arg('filePath', filePath).is('string');
-
+export async function canReadFile(filePath: string): Promise<boolean> {
   try {
     await promisify(fs.access)(filePath, fs.constants.R_OK);
     return true;
@@ -59,39 +50,29 @@ export async function canReadFile (filePath) {
 }
 
 
-
 /**
  * Provided an array of schema validation errors from AJV, returns a multiline
  * string describing each.
- *
- * @param {array} errors - AJV errors array.
  */
-export function parseAjvErrors (errors) {
-  assertIs.context('parseAjvErrors').arg('errors', errors).is('array');
-
+export function parseAjvErrors(errors: Array<LooseObject>): string {
   return errors.map((error, index) => {
-    const path = error.dataPath ? error.dataPath.replace(/^\./, '') : 'root';
-    return chalk.red(`${index + 1}. Value at "${path}" ${error.message}.`);
+    const errPath = error.dataPath ? error.dataPath.replace(/^\./, '') : 'root';
+    return chalk.red(`${index + 1}. Value at "${errPath}" ${error.message}.`);
   }).join('\n');
 }
 
 
 /**
  * Returns a copy of the provided object with any undefined keys removed.
- *
- * @param  {object} obj
- * @return {object}
  */
-export function filterObj (obj) {
-  assertIs.context('filterObj').arg('obj', obj).is('plainObject');
-
+export function filterObj(obj: LooseObject): LooseObject {
   return Object.entries(obj).reduce((acc, [key, value]) => {
     if (value !== undefined) {
       acc[key] = value;
     }
 
     return acc;
-  }, {});
+  }, {} as LooseObject);
 }
 
 
@@ -107,7 +88,7 @@ export function filterObj (obj) {
  *
  * accountSid
  */
-export function loadEnv () {
+export function loadEnv(): object {
   dotenv.load();
 
   return Object.entries(process.env).reduce((obj, [key, value]) => {
@@ -115,7 +96,9 @@ export function loadEnv () {
       // If an environment variable starts with TWILIO_, strip the leading
       // TWILIO_ and convert the variable name to camel-case.
       return {[camelCase(key.replace(TWILIO_KEY_PATTERN, ''))]: value, ...obj};
-    } else if (ENV_KEYS.includes(key)) {
+    }
+
+    if (ENV_KEYS.includes(key)) {
       // If the variable is in the list of variables of interest, convert it to
       // camel-case.
       return {[camelCase(key)]: value, ...obj};
@@ -131,18 +114,13 @@ export function loadEnv () {
  * Provided an object containing parsed command-line arguments (from Yargs),
  * returns an object combining file-based, environment-based, and CLI-based
  * configuration.
- *
- * @param  {object} commandLineArgs
- * @return {object}
  */
-export async function loadConfig (commandLineArgs) {
-  assertIs.context('loadConfig').arg('commandLineArgs', commandLineArgs).is('plainObject');
-
+export async function loadConfig(commandLineArgs: LooseObject): Promise<ITwilioLocalConfig> {
   // Load file-based configuration via cosmiconfig.
-  const fileConfig = await cosmiconfig(THIS_APP_NAME).load() || {};
+  const fileConfig = await cosmiconfig(THIS_APP_NAME).search();
 
-  if (fileConfig.filepath) {
-    log.verbose('loadConfig', `Loaded configuration from: "${chalk.green(fileConfig.filepath)}".`);
+  if (fileConfig && fileConfig.filePath) {
+    log.verbose('loadConfig', `Loaded configuration from: "${chalk.green(fileConfig.filePath)}".`);
   }
 
   // Load environment-based configuration via dotenv.
@@ -153,18 +131,22 @@ export async function loadConfig (commandLineArgs) {
 
   // Merge file-based configuration, environment-based configuration, and
   // command-line arguments.
-  const mergedConfig = Object.assign({}, fileConfig.config, envConfig, cliConfig);
+  const mergedConfig = {
+    ...(fileConfig && fileConfig.config),
+    ...envConfig,
+    ...cliConfig
+  };
 
   // Functions which describe how to parse certain command line arguments and
   // environment variables.
-  const transforms = {
-    // Coerce port to a decimal integer. This is done because dotenv parses it
-    // as a string.
-    port: value => parseInt(value, 10),
+  const transforms: LooseObject = {
+    // Coerce port to an integer. This is done because dotenv parses it as a
+    // string.
+    port: (value: any) => parseInt(value, 10),
     // Resolve relative paths to entry files to absolute paths.
-    entry: value => path.resolve(process.cwd(), value),
+    entry: (value: any) => path.resolve(process.cwd(), value),
     // If "--inspect" is present in arguments, enable it.
-    inspect: value => value || commandLineArgs._.includes('--inspect')
+    inspect: (value: any) => value || commandLineArgs._.includes('--inspect')
   };
 
   const OMIT_KEYS = ['_', '$0', 'version', 'help'];
@@ -180,5 +162,5 @@ export async function loadConfig (commandLineArgs) {
 
   log.silly('config', config);
 
-  return config;
+  return config as ITwilioLocalConfig;
 }

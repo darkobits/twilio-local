@@ -1,7 +1,13 @@
-import yargs from 'yargs';
-import {DEFAULT_METHOD, DEFAULT_PROTO, DEFAULT_PORT} from 'etc/constants';
+#!/usr/bin/env node
 
-export default yargs
+import yargs from 'yargs';
+
+import log from 'lib/log';
+import {loadConfig} from 'lib/utils';
+import TwilioLocal from 'twilio-local';
+
+
+const argv = yargs
   .example('$0 --voice-url=/voice --entry=src/index.js', 'Route voice calls to the "/voice" route and set up file watching using "src/index.js" as the entrypoint.')
   .group(['account-sid', 'auth-token', 'friendly-name'], 'Twilio Configuration')
   .option('account-sid', {
@@ -18,8 +24,7 @@ export default yargs
   })
   .group(['voice-method', 'voice-url'], 'Voice Routing')
   .option('voice-method', {
-    description: 'HTTP method that Twilio will use for voice webhooks.',
-    default: DEFAULT_METHOD
+    description: 'HTTP method that Twilio will use for voice webhooks.'
   })
   .option('voice-url', {
     description: 'Route for voice webhooks.',
@@ -27,8 +32,7 @@ export default yargs
   })
   .group(['sms-method', 'sms-url'], 'SMS Routing')
   .option('sms-method', {
-    description: 'HTTP method that Twilio will use for SMS webhooks.',
-    default: DEFAULT_METHOD
+    description: 'HTTP method that Twilio will use for SMS webhooks.'
   })
   .option('sms-url', {
     description: 'Route for SMS webhooks.',
@@ -36,8 +40,7 @@ export default yargs
   })
   .group(['status-method', 'status-url'], 'Status Callback Routing')
   .option('status-method', {
-    description: 'HTTP method for status webhooks.',
-    default: DEFAULT_METHOD
+    description: 'HTTP method for status webhooks.'
   })
   .option('status-url', {
     description: 'Route for status webhooks.',
@@ -45,12 +48,10 @@ export default yargs
   })
   .group(['protocol', 'port'], 'Tunneling Settings')
   .option('protocol', {
-    description: 'Tunnel protocol to use for ngrok.',
-    default: DEFAULT_PROTO
+    description: 'Tunnel protocol to use for ngrok.'
   })
   .option('port', {
-    description: 'Local port to point the ngrok tunnel to.',
-    default: DEFAULT_PORT
+    description: 'Local port to point the ngrok tunnel to.'
   })
   .option('open', {
     description: 'Open a Twilio console for the application.'
@@ -66,3 +67,15 @@ export default yargs
   .wrap(90)
   .help()
   .argv;
+
+
+async function TwilioLocalCLI() {
+  try {
+    await TwilioLocal(await loadConfig(argv));
+  } catch (err) {
+    log.error('cli', err);
+    process.exit(1);
+  }
+}
+
+TwilioLocalCLI(); // tslint:disable-line no-floating-promises

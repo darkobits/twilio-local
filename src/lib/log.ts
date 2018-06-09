@@ -1,3 +1,4 @@
+// @ts-ignore
 import LogFactory from '@darkobits/log';
 import {THIS_APP_NAME} from 'etc/constants';
 

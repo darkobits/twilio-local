@@ -1,200 +1,82 @@
 import path from 'path';
-
 import querystring from 'querystring';
-import axios from 'axios';
+
+import axios, {AxiosInstance} from 'axios';
 import chalk from 'chalk';
-import ngrok from 'ngrok';
+import ngrok, {INgrokOptions} from 'ngrok';
 import nodeCleanup from 'node-cleanup';
+// @ts-ignore
 import nodemon from 'nodemon';
 import open from 'open';
 import uuid from 'uuid/v4';
 
 import {DEFAULT_METHOD, DEFAULT_PORT, DEFAULT_PROTO} from 'etc/constants';
+import {LooseObject, ITwilioLocalConfig} from 'etc/types';
 import log from 'lib/log';
 import validateConfig from 'lib/validate-config';
 import {canReadFile, toFormattedStr, parseAjvErrors} from 'lib/utils';
 
 
-export default async function TwilioLocal (userConfig = {}) {
-  const config = Object.assign({
-    /**
-     * Twilio Account SID.
-     *
-     * See: https://www.twilio.com/console
-     *
-     * @type {string}
-     */
-    accountSid: '',
 
-    /**
-     * Twilio Auth token.
-     *
-     * See: https://www.twilio.com/console
-     *
-     * @type {string}
-     */
-    authToken: '',
-
-    /**
-     * Friendly name, used to prefix the name generated for the Twilio
-     * application.
-     *
-     * See: https://www.twilio.com/docs/api/rest/applications#instance
-     *
-     * @type {string}
-     */
-    friendlyName: '',
-
-    /**
-     * HTTP method that Twilio will use for voice webhooks.
-     *
-     * See: https://www.twilio.com/docs/api/rest/applications#instance
-     *
-     * @type {string}
-     */
+export default async function TwilioLocal(userConfig?: ITwilioLocalConfig) {
+  const config = {
     voiceMethod: DEFAULT_METHOD,
-
-    /**
-     * Route to append to the URL we get from ngrok to construct a complete URL
-     * for voice webhooks.
-     *
-     * See: https://www.twilio.com/docs/api/rest/applications#instance
-     *
-     * @type {string}
-     */
-    voiceUrl: null,
-
-    /**
-     * HTTP method that Twilio will use for SMS webhooks.
-     *
-     * See: https://www.twilio.com/docs/api/rest/applications#instance
-     *
-     * @type {string}
-     */
     smsMethod: DEFAULT_METHOD,
-
-    /**
-     * Route to append to the URL we get from ngrok to construct a complete URL
-     * for SMS webhooks.
-     *
-     * See: https://www.twilio.com/docs/api/rest/applications#instance
-     *
-     * @type {string}
-     */
-    smsUrl: null,
-
-    /**
-     * HTTP method that Twilio will use for status webhooks.
-     *
-     * See: https://www.twilio.com/docs/api/rest/applications#instance
-     *
-     * @type {string}
-     */
     statusCallbackMethod: DEFAULT_METHOD,
-
-    /**
-     * Route to append to the URL we get from ngrok to construct a complete URL
-     * for status webhooks.
-     *
-     * See: https://www.twilio.com/docs/api/rest/applications#instance
-     *
-     * @type {string}
-     */
-    statusCallback: null,
-
-    /**
-     * Tunnel protocol to use for ngrok.
-     *
-     * See: https://github.com/bubenshchykov/ngrok#options
-     *
-     * @type {string}
-     */
     protocol: DEFAULT_PROTO,
-
-    /**
-     * Local port to point the ngrok tunnel to.
-     *
-     * See: https://github.com/bubenshchykov/ngrok#options
-     *
-     * @type {number}
-     */
     port: DEFAULT_PORT,
-
-    /**
-     * Whether to open a Twilio console once the application has been created.
-     *
-     * @type {boolean}
-     */
     open: true,
-
-    /**
-     * If provided, will use this file as an entry-point to a consumer's
-     * application. Once an ngrok tunnel and ephemeral Twilio application have
-     * been created, this file will be executed using nodemon.
-     *
-     * @type {string}
-     */
-    entry: ''
-  }, userConfig);
+    ...userConfig
+  } as ITwilioLocalConfig;
 
 
   /**
    * Reference to the public URL that will be returned by ngrok.
-   *
-   * @type {string}
    */
-  let ngrokUrl;
+  let ngrokUrl: string;
 
 
   /**
    * Reference to the application JSON blob returned by Twilio.
-   *
-   * @type {object}
    */
-  let app;
+  let app: LooseObject;
 
 
   /**
    * Reference to the axios Twilio client we will create.
-   *
-   * @type {object}
    */
-  let client;
+  let client: AxiosInstance;
 
 
   /**
    * Removes the ephemeral Twilio application and closes the ngrok tunnel.
    */
-  function doCleanup () {
-    return Promise.all([
-      app && client({method: 'DELETE', url: `/Applications/${app.sid}.json`}),
-      ngrokUrl && ngrok.kill()
-    ])
-    .then(() => {
+  async function doCleanup() {
+    try {
+      await Promise.all([ // tslint:disable-line no-unnecessary-type-assertion
+        app && client({
+          method: 'DELETE',
+          url: `/Applications/${app.sid}.json`
+        }),
+        ngrokUrl && ngrok.kill()
+      ] as Array<any>);
+
       if (app && ngrokUrl) {
         log.info('Cleanup done.');
       }
-    })
-    .catch(err => {
+    } catch (err) {
       log.error('cleanup', err);
-    });
+    }
   }
 
 
   /**
    * Handles tear-down on errors and process termination.
-   *
-   * @param {number} code
-   * @param {string} signal
    */
-  function nodeCleanupHandler (code, signal) {
+  function nodeCleanupHandler(code: number, signal: string): boolean {
     log.silly('exit', `Receied exit signal "${chalk.yellow(signal)}".`);
 
-    doCleanup()
-    .then(() => {
-      process.exit(code); // eslint-disable-line unicorn/no-process-exit
-    });
-
+    doCleanup().then(() => process.exit(code)); // tslint:disable-line no-floating-promises
     nodeCleanup.uninstall();
 
     // Tell node-cleanup to keep the process running.
@@ -228,7 +110,7 @@ export default async function TwilioLocal (userConfig = {}) {
       proto: config.protocol,
       addr: config.port,
       region: 'us'
-    });
+    } as INgrokOptions);
 
     log.silly('ngrok', `Tunnel created. URL: ${ngrokUrl}`);
 
@@ -244,30 +126,38 @@ export default async function TwilioLocal (userConfig = {}) {
       }
     });
 
+    // Build Twilio API request payload.
+    const data: LooseObject = {
+      FriendlyName: [
+        config.friendlyName || false,
+        'TwilioLocal',
+        uuid().substr(0, 8)
+      ].filter(i => i).join('-')
+    };
+
+    // Voice endpoint.
+    if (config.voiceUrl) {
+      data.VoiceMethod = config.voiceMethod;
+      data.VoiceUrl = `${ngrokUrl}${config.voiceUrl || ''}`;
+    }
+
+    // SMS endpoint.
+    if (config.smsUrl) {
+      data.SmsMethod = config.smsMethod;
+      data.SmsUrl = `${ngrokUrl}${config.smsUrl || ''}`;
+    }
+
+    // Status callback endpoint.
+    if (config.statusCallback) {
+      data.StatusCallbackMethod = config.statusCallbackMethod;
+      data.StatusCallback = `${ngrokUrl}${config.statusCallback || ''}`;
+    }
+
     // Create Twilio application.
     app = (await client({
       method: 'POST',
-      url: `/Applications.json`,
-      data: querystring.stringify({
-        // Dynamic application name.
-        FriendlyName: [
-          config.friendlyName || false,
-          'TwilioLocal',
-          uuid().substr(0, 8)
-        ].filter(i => i).join('-'),
-
-        // Voice endpoint.
-        VoiceMethod: config.voiceMethod,
-        VoiceUrl: `${ngrokUrl}${config.voiceUrl || ''}`,
-
-        // SMS endpoint.
-        SmsMethod: config.smsMethod,
-        SmsUrl: `${ngrokUrl}${config.smsUrl || ''}`,
-
-        // Status callback endpoint.
-        StatusCallbackMethod: config.statusCallbackMethod,
-        StatusCallback: `${ngrokUrl}${config.statusCallback || ''}`
-      })
+      url: '/Applications.json',
+      data: querystring.stringify(data)
     })).data;
 
     log.info('twilio', 'Created app:', chalk.bold(app.friendly_name));
@@ -276,7 +166,7 @@ export default async function TwilioLocal (userConfig = {}) {
     if (app.voice_url) {
       log.info('twilio', [
         'Voice: ',
-        chalk.dim('(' + app.voice_method.toLowerCase() + ')'),
+        chalk.dim(`(${app.voice_method.toLowerCase()})`),
         chalk.green(app.voice_url),
         '=>',
         chalk.green(`${config.protocol}://localhost:${config.port}${config.voiceUrl || ''}`)
@@ -287,7 +177,7 @@ export default async function TwilioLocal (userConfig = {}) {
     if (app.sms_url) {
       log.info('twilio', [
         'SMS:   ',
-        chalk.dim('(' + app.sms_method.toLowerCase() + ')'),
+        chalk.dim(`(${app.sms_method.toLowerCase()})`),
         chalk.green(app.sms_url),
         '=>',
         chalk.green(`${config.protocol}://localhost:${config.port}${config.smsUrl || ''}`)
@@ -298,7 +188,7 @@ export default async function TwilioLocal (userConfig = {}) {
     if (app.status_callback) {
       log.info('twilio', [
         'Status:',
-        chalk.dim('(' + app.status_callback_method.toLowerCase() + ')'),
+        chalk.dim(`(${app.status_callback_method.toLowerCase()})`),
         chalk.green(app.status_callback),
         '=>',
         chalk.green(`${config.protocol}://localhost:${config.port}${config.statusCallback || ''}`)
@@ -330,15 +220,15 @@ export default async function TwilioLocal (userConfig = {}) {
 
       nodemon(`${config.inspect ? '--inspect' : ''} --exec babel-node --watch ${entryDir} ${absEntry}`)
       .on('start', () => {
-        log.silly('nodemon', `Started.`);
+        log.silly('nodemon', 'Started.');
       })
-      .on('restart', changedFiles => {
+      .on('restart', (changedFiles: Array<string>) => {
         log.info('nodemon', `${chalk.green(changedFiles[0])} changed; restarting.`);
       })
       .on('quit', () => {
-        log.silly('nodemon', `Stopped.`);
+        log.silly('nodemon', 'Stopped.');
       })
-      .on('error', err => {
+      .on('error', (err: Error) => {
         log.error('nodemon', err.message);
       });
     } else {
