@@ -1,4 +1,6 @@
-const axios = jest.fn().mockImplementation(() => {
+import {LooseObject} from 'etc/types';
+
+const axios: jest.Mock & LooseObject = jest.fn().mockImplementation(() => {
   return {
     data: {
       voice_url: 'foo',

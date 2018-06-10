@@ -1,5 +1,5 @@
 const connect = jest.fn().mockImplementation(() => {
-  return `NGROK_URL`;
+  return 'NGROK_URL';
 });
 
 
