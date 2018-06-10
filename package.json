@@ -50,7 +50,7 @@
     "chalk": "^2.4.1",
     "convert-hrtime": "^2.0.0",
     "cosmiconfig": "^5.0.5",
-    "dotenv": "^5.0.1",
+    "dotenv": "^6.0.0",
     "moment": "^2.22.2",
     "ngrok": "^3.0.1",
     "node-cleanup": "^2.1.2",
