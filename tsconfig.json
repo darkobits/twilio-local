@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
-    "baseUrl": "./src",
+    "baseUrl": ".",
+    "rootDir": "src",
     "outDir": "dist",
     "paths": {
       "*": ["*", "src/*"]
@@ -16,11 +17,12 @@
     "noImplicitAny": true,
     "noUnusedLocals": true,
     "pretty": true,
-    "removeComments": true,
+    "removeComments": false,
     "skipLibCheck": true,
     "strictNullChecks": true
   },
   "exclude": [
+    "__mocks__",
     "**/*.spec.ts"
   ]
 }

@@ -30,7 +30,7 @@
   "bin": {
     "twilio-local": "dist/bin/cli.js"
   },
-  "main": "dist/twilio-local.js",
+  "main": "dist/index.js",
   "scripts": {
     "clean": "rimraf dist",
     "check:styles": "tslint --project tsconfig.json --format codeFrame",
