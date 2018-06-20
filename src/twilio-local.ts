@@ -1,5 +1,6 @@
 import path from 'path';
 import querystring from 'querystring';
+import url from 'url';
 import util from 'util';
 
 import axios, {AxiosInstance} from 'axios';
@@ -38,9 +39,33 @@ export default async function TwilioLocal(userConfig?: ITwilioLocalConfig) {
 
 
   /**
-   * Reference to the application JSON blob returned by Twilio.
+   * Reference to the application JSON blob returned by Twilio when we create
+   * the ephemeral application.
    */
-  let app: LooseObject;
+  let app: {
+    [index: string]: string;
+    friendly_name: string;
+    sid: string;
+    sms_method: string;
+    sms_url: string;
+    status_callback_method: string;
+    status_callback: string;
+    voice_method: string;
+    voice_url: string;
+  };
+
+
+  /**
+   * Name of the ephemeral Twilio application and HTTP basic auth username to
+   * use on the ngrok tunnel.
+   */
+  let applicationName: string;
+
+
+  /**
+   * HTTP basic auth password to use with Twilio + ngrok.
+   */
+  const password = uuid().substr(0, 8);
 
 
   /**
@@ -104,14 +129,23 @@ export default async function TwilioLocal(userConfig?: ITwilioLocalConfig) {
       throw new Error(`Invalid configuration:\n${parseAjvErrors(validationErrors)}`);
     }
 
+    // Compute Twilio application name.
+    applicationName = `${config.friendlyName || ''}-TwilioLocal-${uuid().substr(0, 8)}`;
 
-    // ----- [1] Create Ngrok Tunnel -------------------------------------------
 
-    ngrokUrl = await ngrok.connect({
+    // ----- [2] Create Ngrok Tunnel -------------------------------------------
+
+    const rawNgrokUrl = await ngrok.connect({
       proto: config.protocol,
       addr: config.port,
-      region: 'us'
+      region: 'us',
+      auth: `${applicationName}:${password}`
     } as INgrokOptions);
+
+    // Add HTTP Basic authentication to URL.
+    const parsedNgrokUrl = url.parse(rawNgrokUrl);
+    parsedNgrokUrl.auth = `${applicationName}:${password}`;
+    ngrokUrl = url.format(parsedNgrokUrl).replace(/\/$/, '');
 
     log.silly('ngrok', `Tunnel created. URL: ${ngrokUrl}`);
 
