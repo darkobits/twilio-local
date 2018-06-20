@@ -5,6 +5,21 @@ import {
   loadConfig
 } from './utils';
 
+jest.mock('cosmiconfig', () => {
+  return jest.fn((appName: string) => {
+    return {
+      search: jest.fn(() => {
+        return Promise.resolve({
+          filepath: '/path/to/config.js',
+          config: {
+            entry: '/path/to/entry.js'
+          }
+        })
+      })
+    };
+  });
+});
+
 
 describe('parseAjvErrors', () => {
   it('should return a formatted error string', () => {
@@ -87,17 +102,33 @@ describe('loadConfig', () => {
 
   it('should return a configuration object', async () => {
     const commandLineArgs = {
-      cliArgOne: 'foo',
-      cliArgTwo: 'bar'
-    };
-
-    expect(await loadConfig(commandLineArgs)).toMatchObject({
+      _: true,
+      $0: true,
       cliArgOne: 'foo',
       cliArgTwo: 'bar',
+      inspect: true
+    };
+
+    const result = await loadConfig(commandLineArgs);
+
+    expect(result).toMatchObject({
+      // Assert that command-line arguments were loaded.
+      cliArgOne: 'foo',
+      cliArgTwo: 'bar',
+      inspect: true,
+
+      // Assert that environment/.env file values were loaded.
       port: 1234,
       varOne: 'foo',
-      varTwo: 'bar'
+      varTwo: 'bar',
+
+      // Assert that config file values were loaded.
+      entry: '/path/to/entry.js'
     });
+
+    // Assert that extraneous keys were removed.
+    expect(result._).toBeUndefined();
+    expect(result.$0).toBeUndefined();
   });
 
   afterEach(() => {

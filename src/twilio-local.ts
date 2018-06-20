@@ -15,7 +15,7 @@ import pkgDir from 'pkg-dir';
 import uuid from 'uuid/v4';
 
 import {DEFAULT_METHOD, DEFAULT_PORT, DEFAULT_PROTO} from 'etc/constants';
-import {LooseObject, ITwilioLocalConfig} from 'etc/types';
+import {ITwilioLocalConfig} from 'etc/types';
 import log from 'lib/log';
 import {parseAjvErrors} from 'lib/utils';
 import validateConfig from 'lib/validate-config';
@@ -163,12 +163,16 @@ export default async function TwilioLocal(userConfig?: ITwilioLocalConfig) {
     });
 
     // Build Twilio API request payload.
-    const data: LooseObject = {
-      FriendlyName: [
-        config.friendlyName || false,
-        'TwilioLocal',
-        uuid().substr(0, 8)
-      ].filter(i => i).join('-')
+    const data: {
+      FriendlyName: string;
+      VoiceMethod?: string;
+      VoiceUrl?: string;
+      SmsMethod?: string;
+      SmsUrl?: string;
+      StatusCallbackMethod?: string;
+      StatusCallback?: string;
+    } = {
+      FriendlyName: applicationName
     };
 
     // Voice endpoint.

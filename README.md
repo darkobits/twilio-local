@@ -1,5 +1,5 @@
 <a href="#top" id="top">
-  <img src="https://user-images.githubusercontent.com/441546/41648545-10f441fa-742e-11e8-9972-edd7aee92207.png">
+  <img src="https://user-images.githubusercontent.com/441546/41648545-10f441fa-742e-11e8-9972-edd7aee92207.png" style="max-width: 100%">
 </a>
 <p align="center">
   <a href="https://www.npmjs.com/package/@darkobits/twilio-local"><img src="https://img.shields.io/npm/v/@darkobits/twilio-local.svg?style=flat-square"></a>

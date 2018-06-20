@@ -1,74 +1,62 @@
-import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import querystring from 'querystring';
-import {promisify} from 'util';
 
-import axios from 'axios';
-import ngrok from 'ngrok';
-import nodemon from 'nodemon';
+import pEvent from 'p-event';
 import uuid from 'uuid/v4';
 
-import TwilioLocal from './twilio-local';
 
+function createMocks(mocksDescriptor: object): object {
+  const m: any = {};
 
-jest.mock('axios', () => {
-  const axiosModule: any = jest.fn(() => {
-    return {
-      data: {
-        voice_url: 'foo',
-        voice_method: 'GET',
-        sms_url: 'bar',
-        sms_method: 'GET',
-        status_callback: 'baz',
-        status_callback_method: 'GET'
+  // @ts-ignore
+  Object.entries(mocksDescriptor).forEach(([moduleName, moduleImplementationFn]: [string, Function]) => {
+    // console.warn(`[createMocks] Mocking module "${moduleName}".`);
+
+    const moduleImplementation = moduleImplementationFn();
+
+    jest.doMock(moduleName, () => {
+      // Mock a module as a single function.
+      if (typeof moduleImplementation === 'function') {
+        // console.warn(`[createMocks] ${moduleName} will be mocked as a single function.`);
+        return jest.fn(moduleImplementation);
       }
-    };
-  });
 
-  axiosModule.create = jest.fn(() => {
-    // Mock axios client.
-    return axiosModule;
-  });
+      // Mock a module with several methods.
+      if (typeof moduleImplementation === 'object') {
+        // console.warn(`[createMocks] ${moduleName} will be mocked as a module.`);
 
-  return axiosModule;
-});
+        const mockModule = {};
 
-jest.mock('ngrok', () => {
-  return {
-    connect: jest.fn(() => {
-      return 'NGROK_URL';
-    }),
-    kill: jest.fn()
-  };
-});
+        // @ts-ignore
+        Object.entries(moduleImplementation).forEach(([key, value]) => {
+          if (typeof value === 'function') {
+            if (value._isMockFunction === true) {
+              // console.warn(`[createMocks] Skipping re-wrapping of existing mock method ${moduleName}#${key}.`);
+              mockModule[key] = value;
+            } else {
+              // console.warn(`[createMocks] ${moduleName}#${key} will have a mock implementation.`);
+              mockModule[key] = jest.fn(value);
+            }
+          } else {
+            // console.warn(`[createMocks] Setting ${moduleName}.${key}.`);
+            mockModule[key] = value;
+          }
+        });
 
-jest.mock('nodemon', () => {
-  const EventEmitter = require('events'); // tslint:disable-line no-require-imports
+        return mockModule;
+      }
 
-  const emitter = new EventEmitter();
-
-  const nodemonModule: any = jest.fn(() => {
-    setImmediate(() => {
-      emitter.emit('start');
-      emitter.emit('restart', []);
-      emitter.emit('quit');
-      emitter.emit('error', {message: 'foo'});
+      throw new TypeError(`[createMocks] Unknown module implementation type: "${typeof moduleImplementation}"`);
     });
 
-    return emitter;
+    // Finally, require the module, which will trigger the doMock() call above,
+    // and attach it to the mocks object.
+    m[moduleName] = require(moduleName);
   });
 
-  nodemonModule.emit = emitter.emit.bind(emitter);
-
-  return nodemonModule;
-});
-
-jest.mock('fs-extra', () => {
-  return {
-    pathExists: jest.fn(() => Promise.resolve(true))
-  };
-});
+  return m;
+}
 
 
 const ACCOUNT_SID = uuid();
@@ -83,10 +71,74 @@ const PORT = 8585;
 const ENTRY = path.resolve(os.tmpdir(), 'index.js');
 
 
-jest.useFakeTimers();
-
-
 describe('TwilioLocal', () => {
+  // Object that will hold our mock modules.
+  let m: any = {};
+
+  // Future reference to twilio-local.
+  let TwilioLocal;
+
+  // Configuration passed to twilio-local.
+  const CONFIG = {
+    accountSid: ACCOUNT_SID,
+    authToken: AUTH_TOKEN,
+    friendlyName: FRIENDLY_NAME,
+    voiceMethod: METHOD,
+    voiceUrl: VOICE_URL,
+    smsMethod: METHOD,
+    smsUrl: SMS_URL,
+    statusCallbackMethod: METHOD,
+    statusCallback: STATUS_URL,
+    protocol: PROTOCOL,
+    port: PORT,
+    entry: ENTRY,
+    openConsole: true
+  };
+
+  beforeEach(() => {
+    jest.restoreAllMocks();
+
+    m = createMocks({
+      axios: () => {
+        const _clientMock = jest.fn(() => {
+          return Promise.resolve({
+            data: {
+              voice_method: METHOD,
+              voice_url: VOICE_URL,
+              sms_method: METHOD,
+              sms_url: SMS_URL,
+              status_callback_method: METHOD,
+              status_callback: STATUS_URL
+            }
+          });
+        });
+
+        return {
+          create: () => _clientMock,
+          _clientMock
+        };
+      },
+      'fs-extra': () => ({
+        pathExists: () => Promise.resolve(true)
+      }),
+      ngrok: () => ({
+        connect: () => {
+          return 'NGROK_URL';
+        },
+        kill: () => {}
+      }),
+      nodemon: () => {
+        const EventEmitter = require('events'); // tslint:disable-line no-require-imports
+        const emitter = new EventEmitter();
+        return () => emitter;
+      },
+      opn: () => () => {}, // tslint:disable-line no-empty
+      'pkg-dir': () => () => Promise.resolve('/path/to/package')
+    });
+
+    TwilioLocal = require('./twilio-local').default; // tslint:disable-line no-require-imports
+  });
+
   describe('validating configuration', () => {
     it('should throw an error when provided no configuration', async () => {
       expect.assertions(1);
@@ -248,28 +300,12 @@ describe('TwilioLocal', () => {
   });
 
   describe('creating a Twilio application, ngrok tunnel, and file watchers', () => {
-    beforeAll(async () => {
-      // Write entry file to temporary folder.
-      await promisify(fs.writeFile)(ENTRY, 'foo');
-
-      await TwilioLocal({
-        accountSid: ACCOUNT_SID,
-        authToken: AUTH_TOKEN,
-        friendlyName: FRIENDLY_NAME,
-        voiceMethod: METHOD,
-        voiceUrl: VOICE_URL,
-        smsMethod: METHOD,
-        smsUrl: SMS_URL,
-        statusCallbackMethod: METHOD,
-        statusCallback: STATUS_URL,
-        protocol: PROTOCOL,
-        port: PORT,
-        entry: ENTRY
-      });
+    beforeEach(async () => {
+      await TwilioLocal(CONFIG);
     });
 
     it('should create an ngrok tunnel with the provided parameters', () => {
-      expect(ngrok.connect.mock.calls[0][0]).toMatchObject({
+      expect(m.ngrok.connect.mock.calls[0][0]).toMatchObject({
         proto: PROTOCOL,
         addr: PORT
       });
@@ -278,7 +314,7 @@ describe('TwilioLocal', () => {
     it('should create a Twilio application with the provided parameters', () => {
       // Assert that an Axios client was created using our Twilio account SID
       // and auth token.
-      expect(axios.create.mock.calls[0][0]).toMatchObject({
+      expect(m.axios.create.mock.calls[0][0]).toMatchObject({
         auth: {
           username: ACCOUNT_SID,
           password: AUTH_TOKEN
@@ -286,7 +322,7 @@ describe('TwilioLocal', () => {
       });
 
       const parsedQueryString = {
-        ...querystring.parse(axios.mock.calls[0][0].data)
+        ...querystring.parse(m.axios._clientMock.mock.calls[0][0].data)
       };
 
       expect(parsedQueryString.FriendlyName).toMatch(new RegExp(FRIENDLY_NAME, 'ig'));
@@ -298,8 +334,12 @@ describe('TwilioLocal', () => {
       expect(parsedQueryString.StatusCallback).toMatch(new RegExp(`${STATUS_URL}$`, 'ig'));
     });
 
-    it('should start nodemon with the provided parameters', () => {
-      const nodemonArgs = nodemon.mock.calls[0][0];
+    it('should open the Twilio console', () => {
+      expect(m.opn).toHaveBeenCalled();
+    });
+
+    it('should start nodemon with the provided parameters', async () => {
+      const nodemonArgs = m.nodemon.mock.calls[0][0];
 
       // Assert we are transpiling code.
       expect(nodemonArgs).toContain('--exec \"babel-node --extensions=.js,.ts\"');
@@ -310,12 +350,40 @@ describe('TwilioLocal', () => {
       // Assert that the entry file was the last parameter.
       expect(nodemonArgs).toMatch(new RegExp(`${ENTRY}$`));
 
-      jest.advanceTimersByTime(1000);
+      // await pEvent(m.nodemon._emitter, 'quit');
+      // console.warn('GOT QUIT');
+    });
+  });
+
+  describe('when the specified entry file is not readable', () => {
+    beforeEach(() => {
+      m['fs-extra'].pathExists.mockImplementation(() => Promise.resolve(false));
     });
 
-    afterAll(async () => {
-      // Remove temporary entry file.
-      await promisify(fs.unlink)(ENTRY);
+    it('should throw an error', async () => {
+      expect.assertions(1);
+
+      try {
+        await TwilioLocal(CONFIG);
+      } catch (err) {
+        expect(err.message).toMatch('Entry is not readable:');
+      }
+    });
+  });
+
+  describe('when no package root can be found', () => {
+    beforeEach(() => {
+      m['pkg-dir'].mockImplementation(() => Promise.resolve(false));
+    });
+
+    it('should throw an error', async () => {
+      expect.assertions(1);
+
+      try {
+        await TwilioLocal(CONFIG);
+      } catch (err) {
+        expect(err.message).toMatch('Unable to determine your package\'s root directory.');
+      }
     });
   });
 });
