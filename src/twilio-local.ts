@@ -11,6 +11,7 @@ import nodeCleanup from 'node-cleanup';
 // @ts-ignore
 import nodemon from 'nodemon';
 import opn from 'opn';
+import pkgDir from 'pkg-dir';
 import uuid from 'uuid/v4';
 
 import {DEFAULT_METHOD, DEFAULT_PORT, DEFAULT_PROTO} from 'etc/constants';
@@ -150,7 +151,7 @@ export default async function TwilioLocal(userConfig?: ITwilioLocalConfig) {
     log.silly('ngrok', `Tunnel created. URL: ${ngrokUrl}`);
 
 
-    // ----- [2] Create Ephemeral Twilio Application ---------------------------
+    // ----- [3] Create Ephemeral Twilio Application ---------------------------
 
     // Create Twilio client.
     client = axios.create({
@@ -246,19 +247,25 @@ export default async function TwilioLocal(userConfig?: ITwilioLocalConfig) {
     if (config.entry) {
       const absEntry = path.resolve(process.cwd(), config.entry);
       const entryDir = path.parse(absEntry).dir;
+      const pkgRoot = await pkgDir();
 
-        log.info('nodemon', `Starting server at ${chalk.green(config.entry)}.`);
+      if (typeof pkgRoot !== 'string') {
+        throw new Error('Unable to determine your package\'s root directory. Ensure a "package.json" file is present and try again.');
+      }
+
       if (await fs.pathExists(absEntry)) {
+        const relativeEntry = path.relative(pkgRoot, config.entry);
+        log.info('nodemon', `Starting server at ${chalk.green(relativeEntry)}.`);
       } else {
         throw new Error(`Entry is not readable: ${absEntry}`);
       }
 
-      .on('start', () => {
-        log.silly('nodemon', 'Started.');
-      })
       nodemon(`${config.inspect ? '--inspect' : ''} --exec "babel-node --extensions=.js,.ts" --watch ${entryDir} ${absEntry}`)
       .on('restart', (changedFiles: Array<string>) => {
-        log.info('nodemon', `${chalk.green(changedFiles[0])} changed; restarting.`);
+        changedFiles.forEach(fullPath => {
+          const relativePath = path.relative(pkgRoot, fullPath);
+          log.info('nodemon', `${chalk.green(relativePath)} changed; restarting.`);
+        });
       })
       .on('quit', () => {
         log.silly('nodemon', 'Stopped.');
