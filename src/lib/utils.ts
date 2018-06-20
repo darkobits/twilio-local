@@ -1,6 +1,4 @@
-import fs from 'fs';
 import path from 'path';
-import {promisify} from 'util';
 
 import camelCase from 'camelcase';
 import chalk from 'chalk';
@@ -10,44 +8,6 @@ import dotenv from 'dotenv';
 import {THIS_APP_NAME, TWILIO_KEY_PATTERN, ENV_KEYS} from 'etc/constants';
 import {LooseObject, ITwilioLocalConfig} from 'etc/types';
 import log from 'lib/log';
-
-
-/**
- * Returns a formatted string representation of an object's keys / values.
- */
-export function toFormattedStr(obj: object): string {
-  return Object.entries(obj).map(([key, value]) => {
-    let parsedValue;
-
-    switch (typeof value) {
-      case 'string':
-        parsedValue = chalk.green(`"${value}"`);
-        break;
-      case 'boolean':
-      case 'number':
-        parsedValue = chalk.dim.yellow(value);
-        break;
-      default:
-        parsedValue = value;
-    }
-
-    return `${chalk.bold(key)}${chalk.dim(' => ')}${parsedValue}`;
-  }).join('\n');
-}
-
-
-/**
- * Resolves with true if the file at the provided path exists and is readable.
- */
-export async function canReadFile(filePath: string): Promise<boolean> {
-  try {
-    await promisify(fs.access)(filePath, fs.constants.R_OK);
-    return true;
-  } catch (err) {
-    log.verbose('canReadFile', err.message);
-    return false;
-  }
-}
 
 
 /**
@@ -77,16 +37,19 @@ export function filterObj(obj: LooseObject): LooseObject {
 
 
 /**
- * Create an object representing configuration options extracted from the
- * environment.
+ * Loads the user's .env file, if present. Then, iterates over all environment
+ * variables, parsing any variables with a leading TWILIO_, as well as any
+ * variables explicitly declared in ENV_KEYS.
  *
  * An environment variable like:
  *
  * TWILIO_ACCOUNT_SID
  *
- * Will be mapped to the configuration option:
+ * will be mapped to the key:
  *
  * accountSid
+ *
+ * in the returned object.
  */
 export function loadEnv(): object {
   dotenv.load();
@@ -119,8 +82,8 @@ export async function loadConfig(commandLineArgs: LooseObject): Promise<ITwilioL
   // Load file-based configuration via cosmiconfig.
   const fileConfig = await cosmiconfig(THIS_APP_NAME).search();
 
-  if (fileConfig && fileConfig.filePath) {
-    log.verbose('loadConfig', `Loaded configuration from: "${chalk.green(fileConfig.filePath)}".`);
+  if (fileConfig && fileConfig.filepath) {
+    log.verbose('loadConfig', `Loaded configuration from: "${chalk.green(fileConfig.filepath)}".`);
   }
 
   // Load environment-based configuration via dotenv.
@@ -132,8 +95,8 @@ export async function loadConfig(commandLineArgs: LooseObject): Promise<ITwilioL
   // Merge file-based configuration, environment-based configuration, and
   // command-line arguments.
   const mergedConfig = {
-    ...(fileConfig && fileConfig.config),
     ...envConfig,
+    ...(fileConfig && fileConfig.config),
     ...cliConfig
   };
 
@@ -159,8 +122,6 @@ export async function loadConfig(commandLineArgs: LooseObject): Promise<ITwilioL
 
     return {[camelCase(key)]: transforms[key] ? transforms[key](value) : value, ...obj};
   }, {});
-
-  log.silly('config', config);
 
   return config as ITwilioLocalConfig;
 }

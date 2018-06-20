@@ -1,8 +1,10 @@
 import path from 'path';
 import querystring from 'querystring';
+import util from 'util';
 
 import axios, {AxiosInstance} from 'axios';
 import chalk from 'chalk';
+import fs from 'fs-extra';
 import ngrok, {INgrokOptions} from 'ngrok';
 import nodeCleanup from 'node-cleanup';
 // @ts-ignore
@@ -13,9 +15,8 @@ import uuid from 'uuid/v4';
 import {DEFAULT_METHOD, DEFAULT_PORT, DEFAULT_PROTO} from 'etc/constants';
 import {LooseObject, ITwilioLocalConfig} from 'etc/types';
 import log from 'lib/log';
+import {parseAjvErrors} from 'lib/utils';
 import validateConfig from 'lib/validate-config';
-import {canReadFile, toFormattedStr, parseAjvErrors} from 'lib/utils';
-
 
 
 export default async function TwilioLocal(userConfig?: ITwilioLocalConfig) {
@@ -96,7 +97,7 @@ export default async function TwilioLocal(userConfig?: ITwilioLocalConfig) {
     const validationErrors = validateConfig.errors;
 
     // This will log all configuration options at the 'verbose' log level.
-    log.verbose('config', toFormattedStr(config));
+    log.verbose('config', util.inspect(config));
 
     // If the provided configuration is invalid, throw.
     if (Array.isArray(validationErrors) && validationErrors.length > 0) {
@@ -212,8 +213,8 @@ export default async function TwilioLocal(userConfig?: ITwilioLocalConfig) {
       const absEntry = path.resolve(process.cwd(), config.entry);
       const entryDir = path.parse(absEntry).dir;
 
-      if (await canReadFile(absEntry)) {
         log.info('nodemon', `Starting server at ${chalk.green(config.entry)}.`);
+      if (await fs.pathExists(absEntry)) {
       } else {
         throw new Error(`Entry is not readable: ${absEntry}`);
       }
