@@ -1,6 +1,6 @@
 {
   "name": "@darkobits/twilio-local",
-  "description": "Securely route Twilio applications to a local server.",
+  "description": "☎️ → 💻 Painless Twilio application development.",
   "version": "0.3.0",
   "author": "darkobits",
   "license": "WTFPL",
@@ -24,8 +24,7 @@
     "watch"
   ],
   "engines": {
-    "node": "^8.9.0",
-    "npm": "^5.7.0"
+    "node": "^8.9.0"
   },
   "bin": {
     "twilio-local": "dist/bin/cli.js"
@@ -34,12 +33,13 @@
   "scripts": {
     "clean": "rimraf dist",
     "check:styles": "tslint --project tsconfig.json --format codeFrame",
-    "check:types": "tsc --emitDeclarationOnly --pretty; rimraf **/*.spec.d.ts",
+    "check:types": "tsc --emitDeclarationOnly --pretty && rimraf **/*.spec.d.ts",
     "test": "jest",
     "prebuild": "run-p clean check:*",
-    "build": "babel src --extensions='.ts' --ignore='**/*.spec.ts,**/*.d.ts' --out-dir=dist --source-maps=inline",
+    "build": "babel src --extensions='.ts' --ignore='**/*.spec.ts,**/*.d.ts' --out-dir=dist --source-maps=inline --verbose",
     "prebump": "run-p test build",
-    "bump": "standard-version"
+    "bump": "standard-version",
+    "link": "npm run build -- --out-dir $(npx clean-link-dir)/dist --watch"
   },
   "dependencies": {
     "@darkobits/log": "^1.1.0",
