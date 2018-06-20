@@ -253,10 +253,10 @@ export default async function TwilioLocal(userConfig?: ITwilioLocalConfig) {
         throw new Error(`Entry is not readable: ${absEntry}`);
       }
 
-      nodemon(`${config.inspect ? '--inspect' : ''} --exec babel-node --watch ${entryDir} ${absEntry}`)
       .on('start', () => {
         log.silly('nodemon', 'Started.');
       })
+      nodemon(`${config.inspect ? '--inspect' : ''} --exec "babel-node --extensions=.js,.ts" --watch ${entryDir} ${absEntry}`)
       .on('restart', (changedFiles: Array<string>) => {
         log.info('nodemon', `${chalk.green(changedFiles[0])} changed; restarting.`);
       })

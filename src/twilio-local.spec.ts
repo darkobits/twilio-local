@@ -302,7 +302,7 @@ describe('TwilioLocal', () => {
       const nodemonArgs = nodemon.mock.calls[0][0];
 
       // Assert we are transpiling code.
-      expect(nodemonArgs).toContain('--exec babel-node');
+      expect(nodemonArgs).toContain('--exec \"babel-node --extensions=.js,.ts\"');
 
       // Assert that we are watching the entry directory.
       expect(nodemonArgs).toContain(`--watch ${path.parse(ENTRY).dir}`);
