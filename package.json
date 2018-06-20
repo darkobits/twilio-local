@@ -1,7 +1,7 @@
 {
   "name": "@darkobits/twilio-local",
   "description": "☎️ → 💻 Painless Twilio application development.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "darkobits",
   "license": "WTFPL",
   "repository": {
