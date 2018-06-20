@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.0.0"></a>
+# [1.0.0](https://github.com/darkobits/twilio-local/compare/v0.3.0...v1.0.0) (2018-06-20)
+
+
+### Code Refactoring
+
+* "open" option is now "openConsole". ([7c1cd9d](https://github.com/darkobits/twilio-local/commit/7c1cd9d))
+
+
+### Features
+
+* Add HTTP Basic authentication. ([610b809](https://github.com/darkobits/twilio-local/commit/610b809))
+* Support TypeScript files. ([d67d894](https://github.com/darkobits/twilio-local/commit/d67d894))
+
+
+### BREAKING CHANGES
+
+* The "open" option is now "openConsole". This will require users to update their twilio-local configuration.
+
+
+
 <a name="0.3.0"></a>
 # [0.3.0](https://github.com/darkobits/twilio-local/compare/v0.2.1...v0.3.0) (2018-06-12)
 
