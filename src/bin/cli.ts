@@ -53,8 +53,8 @@ const argv = yargs
   .option('port', {
     description: 'Local port to point the ngrok tunnel to.'
   })
-  .option('open', {
-    description: 'Open a Twilio console for the application.'
+  .option('open-console', {
+    description: 'Open the Twilio console for the application.'
   })
   .option('entry', {
     description: 'Local application entrypoint. (Enables file watching.)',

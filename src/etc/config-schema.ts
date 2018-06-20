@@ -42,7 +42,9 @@ export default {
       minimum: 0,
       maximum: 65535
     },
-    open: {},
+    openConsole: {
+      type: 'boolean'
+    },
     entry: {
       type: 'string'
     }

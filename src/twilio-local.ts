@@ -25,7 +25,7 @@ export default async function TwilioLocal(userConfig?: ITwilioLocalConfig) {
     statusCallbackMethod: DEFAULT_METHOD,
     protocol: DEFAULT_PROTO,
     port: DEFAULT_PORT,
-    open: true,
+    openConsole: false,
     ...userConfig
   } as ITwilioLocalConfig;
 
@@ -201,7 +201,7 @@ export default async function TwilioLocal(userConfig?: ITwilioLocalConfig) {
     });
 
     // Open Twilio console.
-    if (config.open) {
+    if (config.openConsole) {
       opn(`https://www.twilio.com/console/voice/twiml/apps/${app.sid}`); // tslint:disable-line no-floating-promises
     }
 

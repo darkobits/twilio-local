@@ -92,7 +92,7 @@ export interface ITwilioLocalConfig {
   /**
    * Whether to open a Twilio console once the application has been created.
    */
-  open?: boolean;
+  openConsole?: boolean;
 
   /**
    * If provided, will use this file as an entry-point to a consumer's
