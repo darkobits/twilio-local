@@ -1,5 +1,5 @@
 <a href="#top" id="top">
-  <img src="https://user-images.githubusercontent.com/441546/37270800-6e41baf8-258d-11e8-89b2-f21229421e95.png">
+  <img src="https://user-images.githubusercontent.com/441546/41648545-10f441fa-742e-11e8-9972-edd7aee92207.png">
 </a>
 <p align="center">
   <a href="https://www.npmjs.com/package/@darkobits/twilio-local"><img src="https://img.shields.io/npm/v/@darkobits/twilio-local.svg?style=flat-square"></a>
@@ -12,19 +12,19 @@
 
 `twilio-local` improves the experience of developing [Twilio applications](https://www.twilio.com/docs/api/rest/applications) locally.
 
-# Features
+### Features
 
 - Manages secure tunneling with `ngrok`.
 - Creates a unique Twilio application for each session.
 - Watches and reloads your source files when they change using `nodemon`.
 
-# Install
+## Install
 
 ```bash
-$ npm i @darkobits/twilio-local
+$ npm install --save-dev @darkobits/twilio-local
 ```
 
-# Use
+## Use
 
 Add a script to your project's `package.json` that calls `twilio-local`:
 
@@ -42,81 +42,96 @@ The following parameters must be provided for `twilio-local` to function:
 
 |Name|Type|Default|Description|
 |---|---|---|---|
-|`accountSid`|`String`|N/A|Your Twilio account SID, available from the [Twilio Console](https://www.twilio.com/console).|
-|`authToken`|`String`|N/A|Your Twilio auth token, available from the [Twilio Console](https://www.twilio.com/console).|
-|`protocol`|`String`|`'http'`|[Tunneling protocol](https://github.com/bubenshchykov/ngrok#options) to use with `ngrok`.|
-|`port`|`Number`|`8080`|[Local port](https://github.com/bubenshchykov/ngrok#options) that your server will run on.|
+|`accountSid`|`string`|N/A|Your Twilio account SID, available from the [Twilio Console](https://www.twilio.com/console).|
+|`authToken`|`string`|N/A|Your Twilio auth token, available from the [Twilio Console](https://www.twilio.com/console).|
 
 The following parameters may be provided based on your preferences and application's requirements:
 
 |Name|Type|Default|Description|
 |---|---|---|---|
-|`friendlyName`|`String`|N/A|Name for per-session Twilio applications.|
-|`voiceMethod`|`String`|`'GET'`|HTTP method Twilio should use to reach your server's voice endpoint.|
-|`voiceUrl`|`String`|N/A|Endpoint that Twilio will use to route incoming voice requests.|
-|`smsMethod`|`String`|`'GET'`|HTTP method Twilio should use to reach your server's SMS endpoint.|
-|`smsUrl`|`String`|N/A|Endpoint that Twilio will use to route incoming SMS requests.|
-|`statusCallbackMethod`|`String`|`'GET'`|HTTP method Twilio should use to reach your server's status endpoint.|
-|`statusCallback`|`String`|N/A|Endpoint that Twilio will use to route status requests.|
-|`entry`|`String`|N/A|Entrypoint to your application. If not provided, `nodemon` functionality will not be used.|
-|`open`|`Boolean`|`true`|Whether to open the Twilio console for the temporary application once tunneling is set up.|
+|`friendlyName`|`string`|N/A|Optional prefix for per-session Twilio application names.|
+|`voiceMethod`|`string`|`'GET'`|HTTP method Twilio should use to reach your server's voice endpoint.|
+|`voiceUrl`|`string`|N/A|Endpoint that Twilio will use to route incoming voice requests.|
+|`smsMethod`|`string`|`'GET'`|HTTP method Twilio should use to reach your server's SMS endpoint.|
+|`smsUrl`|`string`|N/A|Endpoint that Twilio will use to route incoming SMS requests.|
+|`statusCallbackMethod`|`string`|`'GET'`|HTTP method Twilio should use to reach your server's status endpoint.|
+|`statusCallback`|`string`|N/A|Endpoint that Twilio will use to route status requests.|
+|`entry`|`string`|N/A|Entrypoint to your application. If not provided, `nodemon` functionality will not be used.|
+|`openConsole`|`boolean`|`false`|Whether to open the Twilio console for the ephemeral application once tunneling is set up.|
+|`protocol`|`string`|`'http'`|[Tunneling protocol](https://github.com/bubenshchykov/ngrok#options) to use with `ngrok`.|
+|`port`|`number`|`8080`|[Local port](https://github.com/bubenshchykov/ngrok#options) that your server will run on.|
 
 All options may be provided to `twilio-local` in the following ways:
 
-- Via a configuration file named `twilio-local.config.js` in your project root.
-- Via command-line arguments. (See `twilio-local --help`)
-- Via environment variables (or a `.env` file) that begin with `TWILIO_`. For example, the environment variable `TWILIO_AUTH_TOKEN` will be mapped to the `authToken` option.
+1. Via command-line arguments (in `kebab-case`). See `twilio-local --help`.
+2. Via a configuration file named `twilio-local.config.js` in your project root.
+3. Via environment variables (or a `.env` file) that begin with `TWILIO_`. For example, the environment variable `TWILIO_AUTH_TOKEN` will be mapped to the `authToken` option.
 
 **Note:** You should not put sensitive information, such as your application SID or auth token, in source control. Instead, place them in a `.env` file, and `twilio-local` will load them automatically.
 
-**💡 Protip:** To configure the port for your application's server **and** `twilio-local` from the same place, set a `PORT` environment variable or `.env` entry.
+## Example
 
-# Example
-
-> `.env`
+> `📄 .env`
 
 ```bash
+# This will set the 'applicationSid' option, so you can omit it from source.
 TWILIO_APPLICATION_SID=<Your Twilio application SID.>
+
+# This will set the 'authToken' option, so you can omit it from source.
 TWILIO_AUTH_TOKEN=<Your Twilio auth token.>
 
-# Our application will also read this variable when determining what port to use.
+# If your application also respects the PORT environment variable, you can
+# configure it *and* twilio-local's 'port' option in one go!
 PORT=9000
 ```
 
-> `twilio-local.config.js`
+> `📄 twilio-local.config.js`
 
 ```js
 module.exports = {
-  friendlyName: 'Kittens',
-
-  // Use the default method (GET) for all endpoints.
+  // Optional prefix to use in the names twilio-local generates.
+  friendlyName: 'kittens',
+  // Your application should register the following endpoints:
   voiceUrl: '/twilio-voice',
   smsUrl: '/twilio-sms',
   statusUrl: '/twilio-status',
-
-  // Relative path to our application's entrypoint.
+  // Relative path to your application's entrypoint that twilio-local will run
+  // using nodemon.
   entry: './src/index.js'
 };
 ```
 
-Given the above configuration, `twilio-local` will configure tunneling and file-watching, then open a browser:
+Given the above configuration, `twilio-local` will configure tunneling and file-watching. Navigating to your Twilio console, you should see something like the following:
 
 ![](https://user-images.githubusercontent.com/441546/37274123-ff1de73a-2598-11e8-9395-3c63d25da5d7.png)
 
 You can now click the "Call" button to place a test call to your local development server. As you make changes locally, your server will be restarted. When `twilio-local` is terminated (via `SIGINT`, for example) the Twilio application will be removed from your account and the `ngrok` tunnel will be closed.
 
-# FAQ
+## FAQ
 
-> Can I just use `twilio-local` to create an emphemeral Twilio application and set up tunneling?
+**1. Can I just use `twilio-local` to create an emphemeral Twilio application and set up tunneling?**
 
 Yes. Simply omit an `entry` option in your configuration and `twilio-local` won't use `nodemon` to watch your source files.
 
-> Can I tell `twilio-local` to configure the voice/sms/status endpoints of an existing Twilio application?
+**2. Can I tell `twilio-local` to configure the voice/sms/status endpoints of an existing Twilio application?**
 
 While this may be added at some point in the future, it is not encouraged for the following reasons:
 
 - Modifying the configuration of an existing Twilio application is not a best-practice.
-- The server backing the Twilio application is short-lived, so it follows that the Twilio application itself should be short-lived.
+- The server backing the Twilio application is short-lived, so it follows that the Twilio application itself should be short-lived. This is why `twilio-local` creates an ephemeral Twilio application that is destroyed when you quit `twilio-local`.
+
+**3. Arent the ngrok URL(s) created by `twilio-local` accessible to the public?**
+
+`ngrok` generates a random URL for each tunnel/session. In addition to this, `twilio-local` configures the tunnel to require HTTP Basic authentication using a username and password pair that is randomly-generated for every session. These credentials are then provided to Twilio so that it may authenticate against the public `ngrok` URL.
+
+Additionally, your server should be validating incoming HTTP requests to ensure they originated from Twilio. At the very least, this would involve checking that the `AccountSid` and `ApplicationSid` in the Twilio payload match your own. For more robust request validation, Twilio offers HMAC-based [validation methods](https://www.twilio.com/docs/libraries/reference/twilio-node/3.17.3/global.html#validateRequest) as part of the [`twilio-node`](https://github.com/twilio/twilio-node) client library.
+
+Therefore, an attacker would need at least the following in order to spoof a request to your server:
+
+- The random username and password generated by `twilio-local`.
+- The random URL generated by `ngrok`.
+- Your Twilio account SID.
+- Your Twilio application SID.
 
 # Credits
 
