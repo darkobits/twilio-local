@@ -12,6 +12,65 @@ import uuid from 'uuid/v4';
 import TwilioLocal from './twilio-local';
 
 
+jest.mock('axios', () => {
+  const axiosModule: any = jest.fn(() => {
+    return {
+      data: {
+        voice_url: 'foo',
+        voice_method: 'GET',
+        sms_url: 'bar',
+        sms_method: 'GET',
+        status_callback: 'baz',
+        status_callback_method: 'GET'
+      }
+    };
+  });
+
+  axiosModule.create = jest.fn(() => {
+    // Mock axios client.
+    return axiosModule;
+  });
+
+  return axiosModule;
+});
+
+jest.mock('ngrok', () => {
+  return {
+    connect: jest.fn(() => {
+      return 'NGROK_URL';
+    }),
+    kill: jest.fn()
+  };
+});
+
+jest.mock('nodemon', () => {
+  const EventEmitter = require('events'); // tslint:disable-line no-require-imports
+
+  const emitter = new EventEmitter();
+
+  const nodemonModule: any = jest.fn(() => {
+    setImmediate(() => {
+      emitter.emit('start');
+      emitter.emit('restart', []);
+      emitter.emit('quit');
+      emitter.emit('error', {message: 'foo'});
+    });
+
+    return emitter;
+  });
+
+  nodemonModule.emit = emitter.emit.bind(emitter);
+
+  return nodemonModule;
+});
+
+jest.mock('fs-extra', () => {
+  return {
+    pathExists: jest.fn(() => Promise.resolve(true))
+  };
+});
+
+
 const ACCOUNT_SID = uuid();
 const AUTH_TOKEN = uuid();
 const FRIENDLY_NAME = 'TwilioLocalTest';
@@ -22,6 +81,7 @@ const STATUS_URL = '/status';
 const PROTOCOL = 'tls';
 const PORT = 8585;
 const ENTRY = path.resolve(os.tmpdir(), 'index.js');
+
 
 jest.useFakeTimers();
 
