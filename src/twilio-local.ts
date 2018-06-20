@@ -7,7 +7,7 @@ import ngrok, {INgrokOptions} from 'ngrok';
 import nodeCleanup from 'node-cleanup';
 // @ts-ignore
 import nodemon from 'nodemon';
-import open from 'open';
+import opn from 'opn';
 import uuid from 'uuid/v4';
 
 import {DEFAULT_METHOD, DEFAULT_PORT, DEFAULT_PROTO} from 'etc/constants';
@@ -202,7 +202,7 @@ export default async function TwilioLocal(userConfig?: ITwilioLocalConfig) {
 
     // Open Twilio console.
     if (config.open) {
-      open(`https://www.twilio.com/console/voice/twiml/apps/${app.sid}`);
+      opn(`https://www.twilio.com/console/voice/twiml/apps/${app.sid}`); // tslint:disable-line no-floating-promises
     }
 
 
