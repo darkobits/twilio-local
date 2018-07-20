@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="2.0.0"></a>
+# [2.0.0](https://github.com/darkobits/twilio-local/compare/v1.0.1...v2.0.0) (2018-07-20)
+
+
+### Code Refactoring
+
+* Add defaults, no-tunnel is now tunnel. ([f52eb76](https://github.com/darkobits/twilio-local/commit/f52eb76))
+
+
+### BREAKING CHANGES
+
+* The "no-tunnel" option is now "tunnel", which defaults to 'true'.
+
+
+
 <a name="1.0.1"></a>
 ## [1.0.1](https://github.com/darkobits/twilio-local/compare/v1.0.0...v1.0.1) (2018-06-20)
 
