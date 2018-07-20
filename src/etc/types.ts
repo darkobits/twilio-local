@@ -76,6 +76,12 @@ export interface ITwilioLocalConfig {
   statusCallback?: string;
 
   /**
+   * Whether to enable tunneling. If disabled, twilio-local will only start
+   * nodemon.
+   */
+  tunnel?: boolean;
+
+  /**
    * Tunnel protocol to use for ngrok.
    *
    * See: https://github.com/bubenshchykov/ngrok#options

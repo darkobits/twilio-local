@@ -24,7 +24,8 @@ const argv = yargs
   })
   .group(['voice-method', 'voice-url'], 'Voice Routing')
   .option('voice-method', {
-    description: 'HTTP method that Twilio will use for voice webhooks.'
+    description: 'HTTP method that Twilio will use for voice webhooks.',
+    type: 'string'
   })
   .option('voice-url', {
     description: 'Route for voice webhooks.',
@@ -32,7 +33,8 @@ const argv = yargs
   })
   .group(['sms-method', 'sms-url'], 'SMS Routing')
   .option('sms-method', {
-    description: 'HTTP method that Twilio will use for SMS webhooks.'
+    description: 'HTTP method that Twilio will use for SMS webhooks.',
+    type: 'string'
   })
   .option('sms-url', {
     description: 'Route for SMS webhooks.',
@@ -40,21 +42,30 @@ const argv = yargs
   })
   .group(['status-method', 'status-url'], 'Status Callback Routing')
   .option('status-method', {
-    description: 'HTTP method for status webhooks.'
+    description: 'HTTP method for status webhooks.',
+    type: 'string'
   })
   .option('status-url', {
     description: 'Route for status webhooks.',
     type: 'string'
   })
   .group(['protocol', 'port'], 'Tunneling Settings')
+  .option('tunnel', {
+    description: 'Enable tunneling with ngrok.',
+    type: 'boolean',
+    default: true
+  })
   .option('protocol', {
-    description: 'Tunnel protocol to use for ngrok.'
+    description: 'Tunnel protocol to use for ngrok.',
+    type: 'string'
   })
   .option('port', {
-    description: 'Local port to point the ngrok tunnel to.'
+    description: 'Local port to point the ngrok tunnel to.',
+    type: 'number'
   })
   .option('open-console', {
-    description: 'Open the Twilio console for the application.'
+    description: 'Open the Twilio console for the application.',
+    type: 'boolean'
   })
   .option('entry', {
     description: 'Local application entrypoint. (Enables file watching.)',
@@ -64,7 +75,7 @@ const argv = yargs
     description: 'Enable the Node inspector.',
     type: 'boolean'
   })
-  .wrap(90)
+  .wrap(yargs.terminalWidth())
   .help()
   .argv;
 
@@ -73,7 +84,7 @@ async function TwilioLocalCLI() {
   try {
     await TwilioLocal(await loadConfig(argv));
   } catch (err) {
-    log.error('cli', err);
+    log.error('', err);
     process.exit(1);
   }
 }

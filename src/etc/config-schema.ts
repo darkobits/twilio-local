@@ -33,6 +33,9 @@ export default {
     smsUrl: $urlSchema,
     statusCallbackMethod: $httpMethodSchema,
     statusCallback: $urlSchema,
+    tunnel: {
+      type: 'boolean'
+    },
     protocol: {
       type: 'string',
       enum: ['http', 'tcp', 'tls']
@@ -47,6 +50,9 @@ export default {
     },
     entry: {
       type: 'string'
+    },
+    inspect: {
+      type: 'boolean'
     }
   },
   required: [

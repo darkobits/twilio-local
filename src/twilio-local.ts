@@ -29,6 +29,7 @@ export default async function TwilioLocal(userConfig?: ITwilioLocalConfig) {
     protocol: DEFAULT_PROTO,
     port: DEFAULT_PORT,
     openConsole: false,
+    tunnel: true,
     ...userConfig
   } as ITwilioLocalConfig;
 
@@ -36,7 +37,7 @@ export default async function TwilioLocal(userConfig?: ITwilioLocalConfig) {
   /**
    * Reference to the public URL that will be returned by ngrok.
    */
-  let ngrokUrl: string;
+  let ngrokUrl = '';
 
 
   /**
@@ -136,113 +137,116 @@ export default async function TwilioLocal(userConfig?: ITwilioLocalConfig) {
 
     // ----- [2] Create Ngrok Tunnel -------------------------------------------
 
-    const rawNgrokUrl = await ngrok.connect({
-      proto: config.protocol,
-      addr: config.port,
-      region: 'us',
-      auth: `${applicationName}:${password}`
-    } as INgrokOptions);
+    if (config.tunnel) {
+      const rawNgrokUrl = await ngrok.connect({
+        proto: config.protocol,
+        addr: config.port,
+        region: 'us',
+        auth: `${applicationName}:${password}`
+      } as INgrokOptions);
 
-    // Add HTTP Basic authentication to URL.
-    const parsedNgrokUrl = url.parse(rawNgrokUrl);
-    parsedNgrokUrl.auth = `${applicationName}:${password}`;
-    ngrokUrl = url.format(parsedNgrokUrl).replace(/\/$/, '');
+      // Add HTTP Basic authentication to URL.
+      const parsedNgrokUrl = url.parse(rawNgrokUrl);
+      parsedNgrokUrl.auth = `${applicationName}:${password}`;
+      ngrokUrl = url.format(parsedNgrokUrl).replace(/\/$/, '');
 
-    log.silly('ngrok', `Tunnel created. URL: ${ngrokUrl}`);
-
+      log.silly('ngrok', `Tunnel created. URL: ${ngrokUrl}`);
+    }
 
     // ----- [3] Create Ephemeral Twilio Application ---------------------------
 
-    // Create Twilio client.
-    client = axios.create({
-      baseURL: `https://api.twilio.com/2010-04-01/Accounts/${config.accountSid}`,
-      auth: {
-        username: config.accountSid,
-        password: config.authToken
+    if (config.tunnel) {
+      // Create Twilio client.
+      client = axios.create({
+        baseURL: `https://api.twilio.com/2010-04-01/Accounts/${config.accountSid}`,
+        auth: {
+          username: config.accountSid,
+          password: config.authToken
+        }
+      });
+
+      // Build Twilio API request payload.
+      const data: {
+        FriendlyName: string;
+        VoiceMethod?: string;
+        VoiceUrl?: string;
+        SmsMethod?: string;
+        SmsUrl?: string;
+        StatusCallbackMethod?: string;
+        StatusCallback?: string;
+      } = {
+        FriendlyName: applicationName
+      };
+
+      // Voice endpoint.
+      if (config.voiceUrl) {
+        data.VoiceMethod = config.voiceMethod;
+        data.VoiceUrl = `${ngrokUrl}${config.voiceUrl || ''}`;
       }
-    });
 
-    // Build Twilio API request payload.
-    const data: {
-      FriendlyName: string;
-      VoiceMethod?: string;
-      VoiceUrl?: string;
-      SmsMethod?: string;
-      SmsUrl?: string;
-      StatusCallbackMethod?: string;
-      StatusCallback?: string;
-    } = {
-      FriendlyName: applicationName
-    };
+      // SMS endpoint.
+      if (config.smsUrl) {
+        data.SmsMethod = config.smsMethod;
+        data.SmsUrl = `${ngrokUrl}${config.smsUrl || ''}`;
+      }
 
-    // Voice endpoint.
-    if (config.voiceUrl) {
-      data.VoiceMethod = config.voiceMethod;
-      data.VoiceUrl = `${ngrokUrl}${config.voiceUrl || ''}`;
-    }
+      // Status callback endpoint.
+      if (config.statusCallback) {
+        data.StatusCallbackMethod = config.statusCallbackMethod;
+        data.StatusCallback = `${ngrokUrl}${config.statusCallback || ''}`;
+      }
 
-    // SMS endpoint.
-    if (config.smsUrl) {
-      data.SmsMethod = config.smsMethod;
-      data.SmsUrl = `${ngrokUrl}${config.smsUrl || ''}`;
-    }
+      // Create Twilio application.
+      app = (await client({
+        method: 'POST',
+        url: '/Applications.json',
+        data: querystring.stringify(data)
+      })).data;
 
-    // Status callback endpoint.
-    if (config.statusCallback) {
-      data.StatusCallbackMethod = config.statusCallbackMethod;
-      data.StatusCallback = `${ngrokUrl}${config.statusCallback || ''}`;
-    }
+      log.info('twilio', 'Created app:', chalk.bold(app.friendly_name));
 
-    // Create Twilio application.
-    app = (await client({
-      method: 'POST',
-      url: '/Applications.json',
-      data: querystring.stringify(data)
-    })).data;
+      // Log info about VoiceUrl mapping.
+      if (app.voice_url) {
+        log.info('twilio', [
+          'Voice: ',
+          chalk.dim(`(${app.voice_method.toLowerCase()})`),
+          chalk.green(app.voice_url),
+          '=>',
+          chalk.green(`${config.protocol}://localhost:${config.port}${config.voiceUrl || ''}`)
+        ].join(' '));
+      }
 
-    log.info('twilio', 'Created app:', chalk.bold(app.friendly_name));
+      // Log info about SmsUrl mapping.
+      if (app.sms_url) {
+        log.info('twilio', [
+          'SMS:   ',
+          chalk.dim(`(${app.sms_method.toLowerCase()})`),
+          chalk.green(app.sms_url),
+          '=>',
+          chalk.green(`${config.protocol}://localhost:${config.port}${config.smsUrl || ''}`)
+        ].join(' '));
+      }
 
-    // Log info about VoiceUrl mapping.
-    if (app.voice_url) {
-      log.info('twilio', [
-        'Voice: ',
-        chalk.dim(`(${app.voice_method.toLowerCase()})`),
-        chalk.green(app.voice_url),
-        '=>',
-        chalk.green(`${config.protocol}://localhost:${config.port}${config.voiceUrl || ''}`)
-      ].join(' '));
-    }
+      // Log info about StatusCallback mapping.
+      if (app.status_callback) {
+        log.info('twilio', [
+          'Status:',
+          chalk.dim(`(${app.status_callback_method.toLowerCase()})`),
+          chalk.green(app.status_callback),
+          '=>',
+          chalk.green(`${config.protocol}://localhost:${config.port}${config.statusCallback || ''}`)
+        ].join(' '));
+      }
 
-    // Log info about SmsUrl mapping.
-    if (app.sms_url) {
-      log.info('twilio', [
-        'SMS:   ',
-        chalk.dim(`(${app.sms_method.toLowerCase()})`),
-        chalk.green(app.sms_url),
-        '=>',
-        chalk.green(`${config.protocol}://localhost:${config.port}${config.smsUrl || ''}`)
-      ].join(' '));
-    }
+      // Log Twilio's response.
+      Object.keys(app).forEach(key => {
+        log.silly('twilio', `- ${key}: ${app[key]}`);
+      });
 
-    // Log info about StatusCallback mapping.
-    if (app.status_callback) {
-      log.info('twilio', [
-        'Status:',
-        chalk.dim(`(${app.status_callback_method.toLowerCase()})`),
-        chalk.green(app.status_callback),
-        '=>',
-        chalk.green(`${config.protocol}://localhost:${config.port}${config.statusCallback || ''}`)
-      ].join(' '));
-    }
-
-    // Log Twilio's response.
-    Object.keys(app).forEach(key => {
-      log.silly('twilio', `- ${key}: ${app[key]}`);
-    });
-
-    // Open Twilio console.
-    if (config.openConsole) {
-      opn(`https://www.twilio.com/console/voice/twiml/apps/${app.sid}`); // tslint:disable-line no-floating-promises
+      // Open Twilio console.
+      if (config.openConsole) {
+        opn(`https://www.twilio.com/console/voice/twiml/apps/${app.sid}`); // tslint:disable-line no-floating-promises
+      }
     }
 
 
